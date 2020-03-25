@@ -2,6 +2,8 @@ import csv
 import os
 import helper
 
+import argparse
+
 def clean(make_output, clean_data, orders_imported):
     '''
         param make_output <Boolean> output the data to different files, ie move from tsv to csv
@@ -105,3 +107,16 @@ def clean(make_output, clean_data, orders_imported):
                                 print(crow) if crow else print('Exception !!')
                                 print(e)
                                 break
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Script to clean data that we received from PFS.')
+    parser.add_argument('--output', help='output the data to different files', action='store_true')
+    parser.add_argument('--clean', help='clean the data for SFSC', action='store_true')
+    parser.add_argument('--orders'
+                        , help='order records are imported, mapping file can be made, and we can create the link'
+                        , action='store_true')
+    args = parser.parse_args()
+    print('Output orders: %s' % args.output)
+    print('Clean files for SFSC: %s' % args.clean)
+    print('Orders are imported: %s' % args.orders)
+    # clean(args.output, args.clean, args.orders)
