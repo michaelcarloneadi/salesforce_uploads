@@ -40,69 +40,71 @@ def clean(make_output, clean_data, orders_imported):
         # for each file, let's clean out the tsvs and export to csv
         for filename in filenames:
             print('Reading %s' % filename)
-            filetype = helper.chooser(filename)
+            if filename[0] == '.' or filename[0] == '_':
+                print('Skipping, invalid file')
+            else:
+                filetype = helper.chooser(filename)
+                # directory to read from, read to, and clean to
+                p_in, p_out, p_clean, p_upload = helper.get_paths(dir_path, clean_directory)
+                # generate the order map
+                ordermap = helper.OrderMap(p_upload)
+                ordermapping = ordermap.get_order_map()
+                # add a place to get customer mappings too
+                customer_directory = ''
+                customermap = helper.CustomerMap(customer_directory)
+                customermapping = customermap.get_customer_map()
 
-            # directory to read from, read to, and clean to
-            p_in, p_out, p_clean, p_upload = helper.get_paths(dir_path, clean_directory)
-            # generate the order map
-            ordermap = helper.OrderMap(p_upload)
-            ordermapping = ordermap.get_order_map()
-            # add a place to get customer mappings too
-            customer_directory = ''
-            customermap = helper.CustomerMap(customer_directory)
-            customermapping = customermap.get_customer_map()
 
+                # get headers
+                order_type, header = helper.get_headers(os.path.join(p_in, filename))
 
-            # get headers
-            order_type, header = helper.get_headers(os.path.join(p_in, filename))
-
-            # need to handle this encoding because we have weird bytes
-            with open(os.path.join(p_in, filename), encoding='ISO-8859-1') as tsvfile:
-                reader = csv.DictReader(tsvfile, delimiter='\t') # use a DictReader to preserve header names
-                if make_output:
-                    # backup the stuff from tsv to csv
-                    out_filename = '%s%s.csv' % (filename.split('.')[0], order_type)
-                    with open(os.path.join(p_out, out_filename), 'w') as csvfile:
-                        csvwriter = csv.writer(csvfile, delimiter=',', quotechar='"', quoting=csv.QUOTE_ALL)
-                        try:
-                            csvwriter.writerow(header)
-                            for row in reader:
-                                csvwriter.writerow(v for k, v in row.items())
-                        except Exception as e:
-                            print(row) if row else print('Exception !!')
-                            print(e)
-                            break
-            if clean_data:
-                print('cleaning %s' % filename)
+                # need to handle this encoding because we have weird bytes
                 with open(os.path.join(p_in, filename), encoding='ISO-8859-1') as tsvfile:
-                    clean_reader = csv.DictReader(tsvfile, delimiter='\t')  # and one for the clean file
+                    reader = csv.DictReader(tsvfile, delimiter='\t') # use a DictReader to preserve header names
                     if make_output:
-                        # and create a new clean file for this
-                        clean_filename = '%s%s-Clean.csv' % (filename.split('.')[0], order_type)
-                        with open(os.path.join(p_clean, clean_filename), 'w') as cleanfile:
-                            cleanwriter = csv.writer(cleanfile, delimiter=',', quotechar='"', quoting=csv.QUOTE_ALL)
+                        # backup the stuff from tsv to csv
+                        out_filename = '%s%s.csv' % (filename.split('.')[0], order_type)
+                        with open(os.path.join(p_out, out_filename), 'w') as csvfile:
+                            csvwriter = csv.writer(csvfile, delimiter=',', quotechar='"', quoting=csv.QUOTE_ALL)
                             try:
-                                cleanwriter.writerow(header)
-                                for crow in clean_reader:
-                                    if filetype == 3:
-                                        helper.order_cleaner(crow)
-                                        helper.map__c(crow, customermapping, ACCOUNTC)
-                                    if orders_imported:
-                                        if filetype == 1: # order product
-                                            helper.map__c(crow, ordermapping, ORDERC)
-                                        elif filetype == 2: # shipment product
-                                            helper.map__c(crow, ordermapping, ORDERC)
-                                        elif filetype == 4: # payment
-                                            helper.payment_cleaner(crow)
-                                            helper.map__c(crow, ordermapping, ORDERC)
-                                        elif filetype == 5: # shipment
-                                            helper.shipment_cleaner(crow)
-                                            helper.map__c(crow, ordermapping, ORDERC)
-                                    cleanwriter.writerow(v for k, v in crow.items())
+                                csvwriter.writerow(header)
+                                for row in reader:
+                                    csvwriter.writerow(v for k, v in row.items())
                             except Exception as e:
-                                print(crow) if crow else print('Exception !!')
+                                print(row) if row else print('Exception !!')
                                 print(e)
                                 break
+                if clean_data:
+                    print('cleaning %s' % filename)
+                    with open(os.path.join(p_in, filename), encoding='ISO-8859-1') as tsvfile:
+                        clean_reader = csv.DictReader(tsvfile, delimiter='\t')  # and one for the clean file
+                        if make_output:
+                            # and create a new clean file for this
+                            clean_filename = '%s%s-Clean.csv' % (filename.split('.')[0], order_type)
+                            with open(os.path.join(p_clean, clean_filename), 'w') as cleanfile:
+                                cleanwriter = csv.writer(cleanfile, delimiter=',', quotechar='"', quoting=csv.QUOTE_ALL)
+                                try:
+                                    cleanwriter.writerow(header)
+                                    for crow in clean_reader:
+                                        if filetype == 3:
+                                            helper.order_cleaner(crow)
+                                            helper.map__c(crow, customermapping, ACCOUNTC)
+                                        if orders_imported:
+                                            if filetype == 1: # order product
+                                                helper.map__c(crow, ordermapping, ORDERC)
+                                            elif filetype == 2: # shipment product
+                                                helper.map__c(crow, ordermapping, ORDERC)
+                                            elif filetype == 4: # payment
+                                                helper.payment_cleaner(crow)
+                                                helper.map__c(crow, ordermapping, ORDERC)
+                                            elif filetype == 5: # shipment
+                                                helper.shipment_cleaner(crow)
+                                                helper.map__c(crow, ordermapping, ORDERC)
+                                        cleanwriter.writerow(v for k, v in crow.items())
+                                except Exception as e:
+                                    print(crow) if crow else print('Exception !!')
+                                    print(e)
+                                    break
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Script to clean data that we received from PFS.')

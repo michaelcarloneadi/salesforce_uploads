@@ -152,8 +152,6 @@ def map__c(row, mapping, field):
     '''
     if row[field] in mapping.keys():
         row[field] = mapping[row[field]]
-    else:
-        print('!! Warning: Key %s does not exist in mapping' % row[field])
 
 def debug(filepath):
     with open(filepath) as f:
