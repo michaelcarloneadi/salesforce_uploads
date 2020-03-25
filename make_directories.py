@@ -15,7 +15,7 @@ def make_directories():
     print('Current directory where we will be working: %s' % dir_path)
 
     for directory in directories:
-        if directory in current_directories:
+        if directory not in current_directories:
             os.mkdir(os.path.join(dir_path, directory))
             for sd in sub_directories:
                 os.mkdir(os.path.join(dir_path, directory, sd))
