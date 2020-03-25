@@ -5,6 +5,8 @@ import os
 
 class OrderMap:
     def __init__(self, working_directory):
+        self.orderField = 'ORDER_EXTERNAL_ID__C'
+        self.idField = 'ID'
         self.wd = working_directory
         _, _, self.files = next(os.walk(self.wd), (None, None, []))
     def get_order_map(self):
@@ -18,12 +20,14 @@ class OrderMap:
             with open(os.path.join(self.wd, file)) as orderfile:
                 dictrows = csv.DictReader(orderfile, delimiter=',')
                 for row in dictrows:
-                    if row['ORDER_EXTERNAL_ID__C'] not in order_map.keys():
-                        order_map[row['ORDER_EXTERNAL_ID__C']] = row['ID']
+                    if row[self.orderField] not in order_map.keys():
+                        order_map[row[self.orderField]] = row[self.idField]
         return order_map
 
 class CustomerMap:
     def __init__(self, working_directory):
+        self.emailField = 'EMAIL'
+        self.idField = 'ID'
         self.wd = working_directory
         _, _, self.files = next(os.walk(self.wd), (None, None, []))
     def get_customer_map(self):
@@ -37,8 +41,8 @@ class CustomerMap:
             with open(os.path.join(self.wd, file)) as customerfile:
                 dictrows = csv.DictReader(customerfile, delimiter=',')
                 for row in dictrows:
-                    if row['PersonEmail'] not in customer_map.keys():
-                        customer_map[row['PersonEmail']] = row['ID']
+                    if row[self.emailField] not in customer_map.keys():
+                        customer_map[row[self.emailField]] = row[self.idField]
         return customer_map
 
 
@@ -154,6 +158,6 @@ def map__c(row, mapping, field):
 def debug(filepath):
     with open(filepath) as f:
         rows = f.readlines()
-    with open('/Users/michaelcarlone/Downloads/testexport.csv', 'w') as f:
+    with open(os.path.join(os.path.expanduser('~'), 'Downloads', 'testexport.csv'), 'w') as f:
         for ix in rows[:21]:
             f.write(ix)
