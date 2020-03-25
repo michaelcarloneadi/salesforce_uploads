@@ -1,7 +1,7 @@
 '''
     Helper module for parsing through the PFS files
 '''
-import os
+import os, time, datetime
 
 class OrderMap:
     def __init__(self, working_directory):
@@ -42,8 +42,28 @@ class CustomerMap:
                 dictrows = csv.DictReader(customerfile, delimiter=',')
                 for row in dictrows:
                     if row[self.emailField] not in customer_map.keys():
-                        customer_map[row[self.emailField]] = row[self.idField]
+                        customer_map[row[self.emailField].lower()] = row[self.idField]
         return customer_map
+
+
+class Logger:
+    def __init__(self, verbose):
+        self.verbose = verbose
+        self.log_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'logs')
+        if not os.path.exists(self.log_dir):
+            os.mkdir(self.log_dir)
+        self.log_name = 'runlog-%s%s.log' % (datetime.datetime.now().strftime('%Y%m%d'), int(time.time()))
+        self.log_message = ''
+
+    def write(self, message):
+        self.log_message = '%s :: %s\n' % (datetime.datetime.utcnow().strftime('%Y%m%d-%H%M%S.%s'), message)
+        self.out(self.log_message)
+        if self.verbose:
+            print(self.log_message)
+
+    def out(self, message):
+        with open(os.path.join(self.log_dir, self.log_name), 'a') as f:
+            f.write(message)
 
 
 def chooser(filename):
@@ -67,7 +87,7 @@ def chooser(filename):
     return choice
 
 
-def get_headers(filename):
+def get_headers(filename, log=None):
     '''
         param filename <String> name of the file we want to grab headers from
         return <String>, <String []> pfs order type and string list of headers in the file
@@ -82,14 +102,15 @@ def get_headers(filename):
         elif [ih.strip() for ih in headers[1].split('\t')][header.index('PFS Order Type')] == 'SO':
             order_type = '-Shipment'
     except Exception as e:
-        print('Error passing: %s' % e)
+        log.write('Error passing: %s' % e) if log else print('Error passing: %s' % e)
         # if that dont work, try the last row...
         if headers[1].split('\t')[-1].strip() == 'SR':
-            print('Nevermind, found')
             order_type = '-Return'
+            log.write('Found on retry %s' % order_type) if log else print('Found on retry %s' % order_type)
         elif headers[1].split('\t')[-1].strip() == 'SO':
-            print('Nevermind, found')
             order_type = '-Shipment'
+            log.write('Found on retry %s' % order_type) if log else print('Found on retry %s' % order_type)
+
         else:
             pass
     return order_type, [h.strip() for h in header]
@@ -119,6 +140,7 @@ def order_cleaner(order):
     '''
     order['Order_Date__c'] = date_concat(order['Order_Date__c'])
     order['Legacy_OMS__c'] = 'PFSweb'
+    order['AccountId__c'] = order['Email__c'].lower()
 
 
 def payment_cleaner(payment):
@@ -144,7 +166,7 @@ def shipment_cleaner(shipment):
     shipment.update({'TLA_Shipment_Provider_Carrier__c': shipment['Shipment_Provider_Carrier__c'][:3]})
 
 
-def map__c(row, mapping, field):
+def map__c(row, mapping, field, log=None):
     '''
         param row <OrderedDict> dictionary that contains the data with Order__c field
         param mapping <Dict> dictionary that has a mapping between two fields
@@ -152,6 +174,10 @@ def map__c(row, mapping, field):
     '''
     if row[field] in mapping.keys():
         row[field] = mapping[row[field]]
+        if log:
+            log.write("found %s mapping : %s" % (field, mapping[row[field]]))
+    else:
+        row[field] = ''
 
 def debug(filepath):
     with open(filepath) as f:

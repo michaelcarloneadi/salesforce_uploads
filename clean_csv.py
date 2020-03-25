@@ -4,26 +4,22 @@ import helper
 
 import argparse
 
-def clean(make_output, clean_data, orders_imported):
+def clean(make_output, clean_data, orders_imported, verbose):
     '''
         param make_output <Boolean> output the data to different files, ie move from tsv to csv
         param clean_data <Boolean> clean the data and apply the proper fields we expect
         param orders_imported <Boolean> if the order record has been imported, flip to true so that
                                         we can create the linkage between order : record
     '''
-    # output the data
-    make_output = True
-    # if we want to clean the file
-    clean_data = True
-    # and if we imported the orders already and want to link everything
-    orders_imported = False
     # field names for swapping down below
     ORDERC = 'Order__c'
     ACCOUNTC = 'AccountId__c'
+    # make logs
+    logs = helper.Logger(verbose)
 
     # the actual good stuff
     dir_path = os.path.join(os.path.dirname(os.path.realpath(__file__)))
-    print("Current file directory :: %s" % dir_path)
+    logs.write("Current file directory :: %s" % dir_path)
     directories = [d for d in os.listdir(dir_path) if os.path.isdir(os.path.join(dir_path, d))]
     print("Please choose a directory")
     for ix, dir in enumerate(directories):
@@ -39,9 +35,9 @@ def clean(make_output, clean_data, orders_imported):
 
         # for each file, let's clean out the tsvs and export to csv
         for filename in filenames:
-            print('Reading %s' % filename)
+            logs.write('Reading %s' % filename)
             if filename[0] == '.' or filename[0] == '_':
-                print('Skipping, invalid file')
+                logs.write('Skipping, invalid file %s' % filename)
             else:
                 filetype = helper.chooser(filename)
                 # directory to read from, read to, and clean to
@@ -56,7 +52,7 @@ def clean(make_output, clean_data, orders_imported):
 
 
                 # get headers
-                order_type, header = helper.get_headers(os.path.join(p_in, filename))
+                order_type, header = helper.get_headers(os.path.join(p_in, filename), logs)
 
                 # need to handle this encoding because we have weird bytes
                 with open(os.path.join(p_in, filename), encoding='ISO-8859-1') as tsvfile:
@@ -71,11 +67,11 @@ def clean(make_output, clean_data, orders_imported):
                                 for row in reader:
                                     csvwriter.writerow(v for k, v in row.items())
                             except Exception as e:
-                                print(row) if row else print('Exception !!')
-                                print(e)
+                                logs.write(row) if row else logs.write('Exception !!')
+                                logs.write(e)
                                 break
                 if clean_data:
-                    print('cleaning %s' % filename)
+                    logs.write('cleaning %s' % filename)
                     with open(os.path.join(p_in, filename), encoding='ISO-8859-1') as tsvfile:
                         clean_reader = csv.DictReader(tsvfile, delimiter='\t')  # and one for the clean file
                         if make_output:
@@ -88,22 +84,22 @@ def clean(make_output, clean_data, orders_imported):
                                     for crow in clean_reader:
                                         if filetype == 3:
                                             helper.order_cleaner(crow)
-                                            helper.map__c(crow, customermapping, ACCOUNTC)
+                                            helper.map__c(crow, customermapping, ACCOUNTC, logs)
                                         if orders_imported:
                                             if filetype == 1: # order product
-                                                helper.map__c(crow, ordermapping, ORDERC)
+                                                helper.map__c(crow, ordermapping, ORDERC, logs)
                                             elif filetype == 2: # shipment product
-                                                helper.map__c(crow, ordermapping, ORDERC)
+                                                helper.map__c(crow, ordermapping, ORDERC, logs)
                                             elif filetype == 4: # payment
                                                 helper.payment_cleaner(crow)
-                                                helper.map__c(crow, ordermapping, ORDERC)
+                                                helper.map__c(crow, ordermapping, ORDERC, logs)
                                             elif filetype == 5: # shipment
                                                 helper.shipment_cleaner(crow)
-                                                helper.map__c(crow, ordermapping, ORDERC)
+                                                helper.map__c(crow, ordermapping, ORDERC, logs)
                                         cleanwriter.writerow(v for k, v in crow.items())
                                 except Exception as e:
-                                    print(crow) if crow else print('Exception !!')
-                                    print(e)
+                                    logs.write(crow) if crow else logs.write('Exception !!')
+                                    logs.write(e)
                                     break
 
 if __name__ == '__main__':
@@ -113,8 +109,9 @@ if __name__ == '__main__':
     parser.add_argument('--orders'
                         , help='order records are imported, mapping file can be made, and we can create the link'
                         , action='store_true')
+    parser.add_argument('--verbose', action='store_true')
     args = parser.parse_args()
     print('Output orders: %s' % args.output)
     print('Clean files for SFSC: %s' % args.clean)
     print('Orders are imported: %s' % args.orders)
-    clean(args.output, args.clean, args.orders)
+    clean(args.output, args.clean, args.orders, args.verbose)
