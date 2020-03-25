@@ -46,7 +46,7 @@ def clean(make_output, clean_data, orders_imported, verbose):
                 ordermap = helper.OrderMap(p_upload)
                 ordermapping = ordermap.get_order_map()
                 # add a place to get customer mappings too
-                customer_directory = ''
+                customer_directory = os.path.join(dir_path, 'imported_customers')
                 customermap = helper.CustomerMap(customer_directory)
                 customermapping = customermap.get_customer_map()
 
@@ -100,7 +100,7 @@ def clean(make_output, clean_data, orders_imported, verbose):
                                 except Exception as e:
                                     logs.write(crow) if crow else logs.write('Exception !!')
                                     logs.write(e)
-                                    break
+                                    raise(e)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Script to clean data that we received from PFS.')
