@@ -6,9 +6,11 @@ This script takes the TSV from PFS and then outputs a cleaner version for upload
 
 ## clean_csv.py
 Import this module when you want to run it by itself and pass the following parameters:
-* make_output : Boolean : True if you want to output the TSV into CSV format and False if you just want to read it
-* clean_data : Boolean : True if you want to clean the CSV into a format expected of SFSC, False if not
-* orders_imported : Boolean : True if you are trying to make CSVs of the other records, False if you cannot make the Order record link to other OMS records yet
+* make_output : `--output` : Boolean : True if you want to output the TSV into CSV format and False if you just want to read it
+* clean_data : `--clean` : Boolean : True if you want to clean the CSV into a format expected of SFSC, False if not
+* orders_imported : `--orders` : Boolean : True if you are trying to make CSVs of the other records, False if you cannot make the Order record link to other OMS records yet
+
+When you run this via command line and not through a script, pass in the corresponding arguments above to set the parameter to `True`
 ## helper
 A helper module that contains some functions that we use throughout the script
 ## make_directories
@@ -19,9 +21,9 @@ Makes all the directories that we expect of the script when it is walking throug
 2. In the directory you are running the Python scripts in, go into your terminal and run `python3 make_directories.py` or, if you have it linked correctly, `python make_directories.py`
 3. Download the data from SFTP into the proper folder (ex. February 2020 data goes into the `./February 2020/tsv` folder
 4. Save customer import success csv files into `imported_customers` folder
-5. When all is downloaded and saved, for the first run `python3 clean_csv --output --clean`
+5. When all is downloaded and saved, for the first run `python3 clean_csv.py --output --clean`
 6. Upload order records and save the success csv files in `uploaded_orders`
-7. When upload is complete and files are saved, run `python3 clean_csv --output --clean --orders`
+7. When upload is complete and files are saved, run `python3 clean_csv.py --output --clean --orders`
 8. Inspect and upload
 
 Let me know if you have any questions when running this
