@@ -19,7 +19,7 @@ def clean(make_output, clean_data, orders_imported):
     orders_imported = False
     # field names for swapping down below
     ORDERC = 'Order__c'
-    ACCOUNTC = 'Account__c'
+    ACCOUNTC = 'AccountId__c'
 
     # the actual good stuff
     dir_path = os.path.join(os.path.dirname(os.path.realpath(__file__)))
@@ -90,18 +90,14 @@ def clean(make_output, clean_data, orders_imported):
                                     if orders_imported:
                                         if filetype == 1: # order product
                                             helper.map__c(crow, ordermapping, ORDERC)
-                                            helper.map__c(crow, customermapping, ACCOUNTC)
                                         elif filetype == 2: # shipment product
                                             helper.map__c(crow, ordermapping, ORDERC)
-                                            helper.map__c(crow, customermapping, ACCOUNTC)
                                         elif filetype == 4: # payment
                                             helper.payment_cleaner(crow)
                                             helper.map__c(crow, ordermapping, ORDERC)
-                                            helper.map__c(crow, customermapping, ACCOUNTC)
                                         elif filetype == 5: # shipment
                                             helper.shipment_cleaner(crow)
                                             helper.map__c(crow, ordermapping, ORDERC)
-                                            helper.map__c(crow, customermapping, ACCOUNTC)
                                     cleanwriter.writerow(v for k, v in crow.items())
                             except Exception as e:
                                 print(crow) if crow else print('Exception !!')
@@ -119,4 +115,4 @@ if __name__ == '__main__':
     print('Output orders: %s' % args.output)
     print('Clean files for SFSC: %s' % args.clean)
     print('Orders are imported: %s' % args.orders)
-    # clean(args.output, args.clean, args.orders)
+    clean(args.output, args.clean, args.orders)
