@@ -174,8 +174,6 @@ def map__c(row, mapping, field, log=None):
     '''
     if row[field] in mapping.keys():
         row[field] = mapping[row[field]]
-        if log:
-            log.write("found %s mapping : %s" % (field, mapping[row[field]]))
     else:
         row[field] = ''
 
