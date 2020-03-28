@@ -37,6 +37,23 @@ def clean(make_output, clean_data, orders_imported, verbose, ordernum, orderid, 
         # retrieve root, dirs, and files from walk, retain only filenames
         _, _, filenames = next(os.walk(os.path.join(dir_path, clean_directory, 'tsv')), (None, None, []))
 
+        # generate the order map
+        # order_path = os.path.join(dir_path, 'imports', 'imported_orders')
+        # ordermap = helper.OrderMap(order_path, ordernum, orderid)
+        # ordermapping = ordermap.get_order_map()
+        # add a place to get customer mappings too
+        customer_directory = os.path.join(dir_path, 'imports', 'imported_customers')
+        customermap = helper.CustomerMap(customer_directory, email, customerid)
+        customermapping = customermap.get_customer_map()
+        # and product mappings
+        product_directory = os.path.join(dir_path, 'imports', 'imported_products')
+        productmap = helper.ProductMap(product_directory, product, productid)
+        productmapping = productmap.get_product_map()
+        # and finally order products
+        lineitem_directory = os.path.join(dir_path, 'imports', 'imported_orderproducts')
+        linemap = helper.LineItemMap(lineitem_directory, lineitem, lineid)
+        lineitemmapping = linemap.get_lineitem_map()
+
         # for each file, let's clean out the tsvs and export to csv
         for filename in filenames:
             logs.write('Reading %s' % filename)
@@ -46,24 +63,6 @@ def clean(make_output, clean_data, orders_imported, verbose, ordernum, orderid, 
                 filetype = helper.chooser(filename)
                 # directory to read from, read to, and clean to
                 p_in, p_out, p_clean = helper.get_paths(dir_path, clean_directory)
-                # generate the order map
-                order_path = os.path.join(dir_path, 'imports', 'imported_orders')
-                ordermap = helper.OrderMap(order_path, ordernum, orderid)
-                ordermapping = ordermap.get_order_map()
-                # add a place to get customer mappings too
-                customer_directory = os.path.join(dir_path, 'imports', 'imported_customers')
-                customermap = helper.CustomerMap(customer_directory, email, customerid)
-                customermapping = customermap.get_customer_map()
-                # and product mappings
-                product_directory = os.path.join(dir_path, 'imports', 'imported_products')
-                productmap = helper.ProductMap(product_directory, product, productid)
-                productmapping = productmap.get_product_map()
-                # and finally order products
-                lineitem_directory = os.path.join(dir_path, 'imports', 'imported_orderproducts')
-                linemap = helper.LineItemMap(lineitem_directory, lineitem, lineid)
-                lineitemmapping = linemap.get_lineitem_map()
-
-
                 # get headers
                 order_type, header = helper.get_headers(os.path.join(p_in, filename), logs)
 
@@ -86,8 +85,8 @@ def clean(make_output, clean_data, orders_imported, verbose, ordernum, orderid, 
                 if clean_data:
                     logs.write('cleaning %s' % filename)
                     # make a new list for objects that dont have  record
-                    missingorders = []
-                    missing_filename = '%s%s-Clean.csv' % (filename.split('.')[0], '_MissingOrderLink')
+                    # missingorders = []
+                    # missing_filename = '%s%s-Clean.csv' % (filename.split('.')[0], '_MissingOrderLink')
                     with open(os.path.join(p_in, filename), encoding='ISO-8859-1') as tsvfile:
                         clean_reader = csv.DictReader(tsvfile, delimiter='\t')  # and one for the clean file
                         if make_output:
@@ -96,7 +95,18 @@ def clean(make_output, clean_data, orders_imported, verbose, ordernum, orderid, 
                             with open(os.path.join(p_clean, clean_filename), 'w') as cleanfile:
                                 cleanwriter = csv.writer(cleanfile, delimiter=',', quotechar='"', quoting=csv.QUOTE_ALL)
                                 try:
+                                    if filetype == 1 or filetype == 2:
+                                        header.append('Product_External_ID__c')
+                                        header.append('Order_External_ID__c')
+                                    elif filetype == 4:
+                                        header.append('Custom_Field_1__c')
+                                        header.append('Order_External_Id__c')
+                                    elif filetype == 5:
+                                        header.append('TLA_Shipment_Provider_Carrier__c')
+                                        header.append('Order_External_ID__c')
+
                                     cleanwriter.writerow(header)
+
                                     for crow in clean_reader:
                                         if filetype == 3:
                                             helper.order_cleaner(crow)
@@ -105,22 +115,15 @@ def clean(make_output, clean_data, orders_imported, verbose, ordernum, orderid, 
                                         if orders_imported and filetype != 3:
                                             if filetype == 1: # order product
                                                 helper.order_product_cleaner(crow)
-                                                helper.map__c(crow, ordermapping, ORDERC, logs)
                                                 helper.map__c(crow, productmapping, PRODUCTC, logs)
                                             elif filetype == 2: # shipment product
-                                                helper.map__c(crow, ordermapping, ORDERC, logs)
+                                                helper.shipment_product_cleaner(crow)
                                                 helper.map__c(crow, lineitemmapping, LINEITEMC, logs)
                                             elif filetype == 4: # payment
                                                 helper.payment_cleaner(crow)
-                                                helper.map__c(crow, ordermapping, ORDERC, logs)
                                             elif filetype == 5: # shipment
                                                 helper.shipment_cleaner(crow)
-                                                helper.map__c(crow, ordermapping, ORDERC, logs)
-                                            if crow[ORDERC] == '':
-                                                missingorders.append(crow)
-                                            else:
-                                                cleanwriter.writerow(v for k, v in crow.items())
-                                    helper.write_file(os.path.join(dir_path, clean_directory), missing_filename, header, missingorders)
+                                        cleanwriter.writerow(v for k, v in crow.items())
                                 except Exception as e:
                                     logs.write(crow) if crow else logs.write('Exception !!')
                                     logs.write(e)

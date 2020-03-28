@@ -22,7 +22,7 @@ class OrderMap:
                     dictrows = csv.DictReader(orderfile, delimiter=',')
                     for row in dictrows:
                         if row[self.orderField] not in order_map.keys():
-                            order_map[row[self.orderField].lower()] = row[self.idField]
+                            order_map[row[self.orderField]] = row[self.idField]
         return order_map
 
 
@@ -45,7 +45,7 @@ class LineItemMap:
                     dictrows = csv.DictReader(orderfile, delimiter=',')
                     for row in dictrows:
                         if row[self.lineField] not in lineitem.keys():
-                            lineitem[row[self.lineField].lower()] = row[self.idField]
+                            lineitem[row[self.lineField]] = row[self.idField]
         return lineitem
 
 
@@ -201,22 +201,37 @@ def payment_cleaner(payment):
             , payment['creditCardExpirationMonth']
             , payment['creditCardExpirationYear']
             , 'Mastercard' if payment['creditCardType'] == 'Master Card' else payment['creditCardType']
-        )}
+        )
+         ,'Order_External_Id__c': payment['Order__c']
+     }
     )
 
 def order_product_cleaner(lineitem):
     lineitem['Product__c'] = lineitem['Product_Code__c']
+    lineitem.update(
+        {'Product_External_ID__c': lineitem['Product_Code__c']
+         ,'Order_External_ID__c': lineitem['Order__c']
+    }
+    )
 
 
 def shipment_product_cleaner(shipitem):
     shipitem['OrderProduct__c'] = shipitem['Product_SKU__c']
+    shipitem.update(
+        {'Product_External_ID__c': shipitem['Product_SKU__c']
+         ,'Order_External_Id__c': shipitem['Order__c']
+     }
+    )
 
 def shipment_cleaner(shipment):
     '''
         param shipment <OrderedDict> dictionary that contains dirty shipment information to import
     '''
     shipment['Actual_Shipment_Date__c'] = date_concat(shipment['Actual_Shipment_Date__c'])
-    shipment.update({'TLA_Shipment_Provider_Carrier__c': shipment['Shipment_Provider_Carrier__c'][:3]})
+    shipment.update({'TLA_Shipment_Provider_Carrier__c': shipment['Shipment_Provider_Carrier__c'][:3]
+                     ,'Order_External_ID__c': shipment['Order__c']
+     }
+    )
 
 
 def map__c(row, mapping, field, log=None):
