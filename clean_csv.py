@@ -1,10 +1,11 @@
 import csv
 import os
 import helper
+from collections import OrderedDict
 
 import argparse
 
-def clean(make_output, clean_data, orders_imported, verbose):
+def clean(make_output, clean_data, orders_imported, verbose, ordernum, orderid, email, customerid, product, productid, lineitem, lineid):
     '''
         param make_output <Boolean> output the data to different files, ie move from tsv to csv
         param clean_data <Boolean> clean the data and apply the proper fields we expect
@@ -14,6 +15,9 @@ def clean(make_output, clean_data, orders_imported, verbose):
     # field names for swapping down below
     ORDERC = 'Order__c'
     ACCOUNTC = 'AccountId__c'
+    PRODUCTC = 'Product__c'
+    LINEITEMC = 'OrderProduct__c'
+
     # make logs
     logs = helper.Logger(verbose)
 
@@ -41,14 +45,23 @@ def clean(make_output, clean_data, orders_imported, verbose):
             else:
                 filetype = helper.chooser(filename)
                 # directory to read from, read to, and clean to
-                p_in, p_out, p_clean, p_upload = helper.get_paths(dir_path, clean_directory)
+                p_in, p_out, p_clean = helper.get_paths(dir_path, clean_directory)
                 # generate the order map
-                ordermap = helper.OrderMap(p_upload)
+                order_path = os.path.join(dir_path, 'imports', 'imported_orders')
+                ordermap = helper.OrderMap(order_path, ordernum, orderid)
                 ordermapping = ordermap.get_order_map()
                 # add a place to get customer mappings too
-                customer_directory = os.path.join(dir_path, 'imported_customers')
-                customermap = helper.CustomerMap(customer_directory)
+                customer_directory = os.path.join(dir_path, 'imports', 'imported_customers')
+                customermap = helper.CustomerMap(customer_directory, email, customerid)
                 customermapping = customermap.get_customer_map()
+                # and product mappings
+                product_directory = os.path.join(dir_path, 'imports', 'imported_products')
+                productmap = helper.ProductMap(product_directory, product, productid)
+                productmapping = productmap.get_product_map()
+                # and finally order products
+                lineitem_directory = os.path.join(dir_path, 'imports', 'imported_orderproducts')
+                linemap = helper.LineItemMap(lineitem_directory, lineitem, lineid)
+                lineitemmapping = linemap.get_lineitem_map()
 
 
                 # get headers
@@ -72,6 +85,9 @@ def clean(make_output, clean_data, orders_imported, verbose):
                                 break
                 if clean_data:
                     logs.write('cleaning %s' % filename)
+                    # make a new list for objects that dont have  record
+                    missingorders = []
+                    missing_filename = '%s%s-Clean.csv' % (filename.split('.')[0], '_MissingOrderLink')
                     with open(os.path.join(p_in, filename), encoding='ISO-8859-1') as tsvfile:
                         clean_reader = csv.DictReader(tsvfile, delimiter='\t')  # and one for the clean file
                         if make_output:
@@ -85,18 +101,26 @@ def clean(make_output, clean_data, orders_imported, verbose):
                                         if filetype == 3:
                                             helper.order_cleaner(crow)
                                             helper.map__c(crow, customermapping, ACCOUNTC, logs)
-                                        if orders_imported:
+                                            cleanwriter.writerow(v for k, v in crow.items())
+                                        if orders_imported and filetype != 3:
                                             if filetype == 1: # order product
+                                                helper.order_product_cleaner(crow)
                                                 helper.map__c(crow, ordermapping, ORDERC, logs)
+                                                helper.map__c(crow, productmapping, PRODUCTC, logs)
                                             elif filetype == 2: # shipment product
                                                 helper.map__c(crow, ordermapping, ORDERC, logs)
+                                                helper.map__c(crow, lineitemmapping, LINEITEMC, logs)
                                             elif filetype == 4: # payment
                                                 helper.payment_cleaner(crow)
                                                 helper.map__c(crow, ordermapping, ORDERC, logs)
                                             elif filetype == 5: # shipment
                                                 helper.shipment_cleaner(crow)
                                                 helper.map__c(crow, ordermapping, ORDERC, logs)
-                                        cleanwriter.writerow(v for k, v in crow.items())
+                                            if crow[ORDERC] == '':
+                                                missingorders.append(crow)
+                                            else:
+                                                cleanwriter.writerow(v for k, v in crow.items())
+                                    helper.write_file(os.path.join(dir_path, clean_directory), missing_filename, header, missingorders)
                                 except Exception as e:
                                     logs.write(crow) if crow else logs.write('Exception !!')
                                     logs.write(e)
@@ -104,14 +128,35 @@ def clean(make_output, clean_data, orders_imported, verbose):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Script to clean data that we received from PFS.')
-    parser.add_argument('--output', help='output the data to different files', action='store_true')
-    parser.add_argument('--clean', help='clean the data for SFSC', action='store_true')
+    parser.add_argument('--output', help='output the data to different files', action='store_false')
+    parser.add_argument('--clean', help='clean the data for SFSC', action='store_false')
     parser.add_argument('--orders'
                         , help='order records are imported, mapping file can be made, and we can create the link'
                         , action='store_true')
     parser.add_argument('--verbose', action='store_true')
+    # lets add the column names here, since the CSVs are weird
+    # order columns
+    parser.add_argument('-onum', default='ORDER_EXTERNAL_ID__C')
+    parser.add_argument('-oid', default='ID')
+    # customer columns
+    parser.add_argument('-cemail', default='EMAIL')
+    parser.add_argument('-cid', default='ID')
+    # product columns
+    parser.add_argument('-p', default='STOCKKEEPINGUNIT__C')
+    parser.add_argument('-pid', default='ID')
+    # line item columns
+    parser.add_argument('-op', default='PRODUCT_SKU__C')
+    parser.add_argument('-opid', default='ID')
+
+
     args = parser.parse_args()
     print('Output orders: %s' % args.output)
     print('Clean files for SFSC: %s' % args.clean)
     print('Orders are imported: %s' % args.orders)
-    clean(args.output, args.clean, args.orders, args.verbose)
+
+    print('order definitions :: order=%s ; orderid=%s' % (args.onum, args.oid))
+    print('customer definitions :: order=%s ; orderid=%s' % (args.cemail, args.cid))
+    print('product definitions :: order=%s ; orderid=%s' % (args.p, args.pid))
+    print('order product definitions :: order=%s ; orderid=%s' % (args.op, args.opid))
+
+    clean(args.output, args.clean, args.orders, args.verbose, args.onum, args.oid, args.cemail, args.cid, args.p, args.pid, args.op, args.opid)

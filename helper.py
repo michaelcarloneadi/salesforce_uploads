@@ -1,12 +1,12 @@
 '''
     Helper module for parsing through the PFS files
 '''
-import os, time, datetime
+import os, time, datetime, csv
 
 class OrderMap:
-    def __init__(self, working_directory):
-        self.orderField = 'ORDER_EXTERNAL_ID__C'
-        self.idField = 'ID'
+    def __init__(self, working_directory, ordernumber, orderid):
+        self.orderField = 'ORDER_EXTERNAL_ID__C' if not ordernumber else ordernumber
+        self.idField = 'ID' if not orderid else orderid
         self.wd = working_directory
         _, _, self.files = next(os.walk(self.wd), (None, None, []))
     def get_order_map(self):
@@ -17,17 +17,42 @@ class OrderMap:
 
         order_map = dict()
         for file in self.files:
-            with open(os.path.join(self.wd, file)) as orderfile:
-                dictrows = csv.DictReader(orderfile, delimiter=',')
-                for row in dictrows:
-                    if row[self.orderField] not in order_map.keys():
-                        order_map[row[self.orderField]] = row[self.idField]
+            if file[-4:] == '.csv':
+                with open(os.path.join(self.wd, file), encoding='ISO-8859-1') as orderfile:
+                    dictrows = csv.DictReader(orderfile, delimiter=',')
+                    for row in dictrows:
+                        if row[self.orderField] not in order_map.keys():
+                            order_map[row[self.orderField].lower()] = row[self.idField]
         return order_map
 
+
+class LineItemMap:
+    def __init__(self, working_directory, orderproduct, opid):
+        self.lineField = 'PRODUCT_SKU__C' if not orderproduct else orderproduct
+        self.idField = 'ID' if not opid else opid
+        self.wd = working_directory
+        _, _, self.files = next(os.walk(self.wd), (None, None, []))
+    def get_lineitem_map(self):
+        '''
+            return <Dictionary> mapping between SFSC ID and Order Number
+        '''
+        import csv
+
+        lineitem = dict()
+        for file in self.files:
+            if file[-4:] == '.csv':
+                with open(os.path.join(self.wd, file), encoding='ISO-8859-1') as orderfile:
+                    dictrows = csv.DictReader(orderfile, delimiter=',')
+                    for row in dictrows:
+                        if row[self.lineField] not in lineitem.keys():
+                            lineitem[row[self.lineField].lower()] = row[self.idField]
+        return lineitem
+
+
 class CustomerMap:
-    def __init__(self, working_directory):
-        self.emailField = 'EMAIL'
-        self.idField = 'ID'
+    def __init__(self, working_directory, customeremail, customerid):
+        self.emailField = 'EMAIL' if not customeremail else customeremail
+        self.idField = 'ID' if not customerid else customerid
         self.wd = working_directory
         _, _, self.files = next(os.walk(self.wd), (None, None, []))
     def get_customer_map(self):
@@ -38,12 +63,34 @@ class CustomerMap:
 
         customer_map = dict()
         for file in self.files:
-            with open(os.path.join(self.wd, file)) as customerfile:
+            with open(os.path.join(self.wd, file), encoding='ISO-8859-1') as customerfile:
                 dictrows = csv.DictReader(customerfile, delimiter=',')
                 for row in dictrows:
                     if row[self.emailField] not in customer_map.keys():
                         customer_map[row[self.emailField].lower()] = row[self.idField]
         return customer_map
+
+
+class ProductMap:
+    def __init__(self, working_directory, product, productid):
+        self.productField = 'STOCKKEEPINGUNIT__C' if not product else product
+        self.idField = 'ID' if not productid else productid
+        self.wd = working_directory
+        _, _, self.files = next(os.walk(self.wd), (None, None, []))
+    def get_product_map(self):
+        '''
+            return <Dictionary> mapping between SFSC ID and Customer Email
+        '''
+        import csv
+
+        product_map = dict()
+        for file in self.files:
+            with open(os.path.join(self.wd, file), encoding='ISO-8859-1') as productfile:
+                dictrows = csv.DictReader(productfile, delimiter=',')
+                for row in dictrows:
+                    if row[self.productField] not in product_map.keys():
+                        product_map[row[self.productField].lower()] = row[self.idField]
+        return product_map
 
 
 class Logger:
@@ -123,7 +170,7 @@ def get_paths(directory_path, clean_directory):
         return <String>, String>, <String> filepaths of the different folders in the clean directory
     '''
     d = os.path.join(directory_path, clean_directory)
-    return os.path.join(d, 'tsv'), os.path.join(d, 'csv'), os.path.join(d, 'clean'), os.path.join(d, 'uploaded_orders')
+    return os.path.join(d, 'tsv'), os.path.join(d, 'csv'), os.path.join(d, 'clean')
 
 
 def date_concat(dateString):
@@ -157,6 +204,12 @@ def payment_cleaner(payment):
         )}
     )
 
+def order_product_cleaner(lineitem):
+    lineitem['Product__c'] = lineitem['Product_Code__c']
+
+
+def shipment_product_cleaner(shipitem):
+    shipitem['OrderProduct__c'] = shipitem['Product_SKU__c']
 
 def shipment_cleaner(shipment):
     '''
@@ -176,6 +229,17 @@ def map__c(row, mapping, field, log=None):
         row[field] = mapping[row[field]]
     else:
         row[field] = ''
+
+def write_file(pathway, filename, header, orders):
+    log_dir = os.path.join(pathway, 'missing-orders')
+    if not os.path.exists(log_dir):
+        os.mkdir(log_dir)
+    with open(os.path.join(log_dir, filename), 'w') as f:
+        writer = csv.writer(f, delimiter=',', quotechar='"', quoting=csv.QUOTE_ALL)
+        writer.writerow(header)
+        for order in orders:
+            writer.writerow(v for k, v in order.items())
+
 
 def debug(filepath):
     with open(filepath) as f:
