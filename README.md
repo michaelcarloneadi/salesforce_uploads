@@ -19,11 +19,29 @@ Makes all the directories that we expect of the script when it is walking throug
 # How to use this script
 1. Make sure you have Python3.  If you dont, run `brew install python` and then run `python3 --version`.  You can also try `python --version` if you have the path linked properly.  Make sure this returns version 3.\*.\* (code was written with 3.7.\*)
 2. In the directory you are running the Python scripts in, go into your terminal and run `python3 make_directories.py` or, if you have it linked correctly, `python make_directories.py`
+Additionally, add all imported log files (success*.csv, etc) into the relevant file under `./imports/`
 3. Download the data from SFTP into the proper folder (ex. February 2020 data goes into the `./February 2020/tsv` folder
 4. Save customer import success csv files into `imported_customers` folder
-5. When all is downloaded and saved, for the first run `python3 clean_csv.py --output --clean`
+5. When all is downloaded and saved, for the first run `python3 clean_csv.py`
 6. Upload order records and save the success csv files in `uploaded_orders`
-7. When upload is complete and files are saved, run `python3 clean_csv.py --output --clean --orders`
+7. When upload is complete and files are saved, run `python3 clean_csv.py --orders`
 8. Inspect and upload
+Note: Files missing an ORDER__C linkage will be placed in a missing_orders directory for troubleshooting
+
+# Troubleshooting
+## Key Error
+When you are cleaning, there are times when you run into a KeyError.  You can make changes to the columns via the following options when run via `python3 clean_csv.py [options]`
+_Example_: `python3 clean_csv.py --orders -onum Order_External_Id__c`
+* `-onum` Customer Order Number [ASC/ONT/OUT prefixed number] : DEFAULT ORDER_EXTERNAL_ID__C
+* `-oid` Order ID : DEFAULT ID
+* `-cemail` Customer email : DEFAULT EMAIL
+* `-cid` Customer ID : DEFAULT ID
+* `-p` Product identifier : DEFAFULT STOCKKEEPINGUNIT__C
+* `-pid` Product ID : DEFAULT ID
+* `-op` Line item product identifier : DEFAULT PRODUCT_SKU__C
+* `-opid` Line item identifier : DEFAULT ID
+## Logging
+There are logs under `./logs/` that you can use for troubleshooting.  When there are parsing or other errors, the row that errored out will be logged, as will the ID, if available, that was being parsed.
+
 
 Let me know if you have any questions when running this
