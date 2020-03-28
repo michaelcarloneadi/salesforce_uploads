@@ -18,8 +18,7 @@ Makes all the directories that we expect of the script when it is walking throug
 
 # How to use this script
 1. Make sure you have Python3.  If you dont, run `brew install python` and then run `python3 --version`.  You can also try `python --version` if you have the path linked properly.  Make sure this returns version 3.\*.\* (code was written with 3.7.\*)
-2. In the directory you are running the Python scripts in, go into your terminal and run `python3 make_directories.py` or, if you have it linked correctly, `python make_directories.py`
-Additionally, add all imported log files (success*.csv, etc) into the relevant file under `./imports/`
+2. In the directory you are running the Python scripts in, go into your terminal and run `python3 make_directories.py` or, if you have it linked correctly, `python make_directories.py`.  Additionally, add all imported log files (success*.csv, etc) into the relevant file under `./imports/`
 3. Download the data from SFTP into the proper folder (ex. February 2020 data goes into the `./February 2020/tsv` folder
 4. Save customer import success csv files into `imported_customers` folder
 5. When all is downloaded and saved, for the first run `python3 clean_csv.py`
