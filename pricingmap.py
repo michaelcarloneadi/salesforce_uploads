@@ -61,5 +61,4 @@ def return_pricing(pricingfile):
     return pricedict
 
 if __name__ == '__main__':
-    wd = '/Users/michaelcarlone/PycharmProjects/salesforce_uploads/December 2019'
-    create_pricing(wd)
+    print('whoa whoa whoa')
