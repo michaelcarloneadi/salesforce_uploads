@@ -1,9 +1,10 @@
 import csv
 import os
 import helper
-from collections import OrderedDict
+import pricingmap
 
 import argparse
+
 
 def clean(make_output, clean_data, orders_imported, verbose, ordernum, orderid, email, customerid, product, productid, lineitem, lineid):
     '''
@@ -36,6 +37,10 @@ def clean(make_output, clean_data, orders_imported, verbose, ordernum, orderid, 
         clean_directory = directories[directoryindex]
         # retrieve root, dirs, and files from walk, retain only filenames
         _, _, filenames = next(os.walk(os.path.join(dir_path, clean_directory, 'tsv')), (None, None, []))
+
+        # get the pricing files that we need
+        pricingfile = pricingmap.create_pricing(clean_directory)
+        prices = pricingmap.return_pricing(pricingfile)
 
         # generate the order map
         # order_path = os.path.join(dir_path, 'imports', 'imported_orders')
@@ -109,9 +114,8 @@ def clean(make_output, clean_data, orders_imported, verbose, ordernum, orderid, 
 
                                     for crow in clean_reader:
                                         if filetype == 3:
-                                            helper.order_cleaner(crow)
+                                            helper.order_cleaner(crow, prices, ordernum)
                                             helper.map__c(crow, customermapping, ACCOUNTC, logs)
-                                            cleanwriter.writerow(v for k, v in crow.items())
                                         if orders_imported and filetype != 3:
                                             if filetype == 1: # order product
                                                 helper.order_product_cleaner(crow)
@@ -139,7 +143,7 @@ if __name__ == '__main__':
     parser.add_argument('--verbose', action='store_true')
     # lets add the column names here, since the CSVs are weird
     # order columns
-    parser.add_argument('-onum', default='ORDER_EXTERNAL_ID__C')
+    parser.add_argument('-onum', default='Order_External_ID__c')
     parser.add_argument('-oid', default='ID')
     # customer columns
     parser.add_argument('-cemail', default='EMAIL')
