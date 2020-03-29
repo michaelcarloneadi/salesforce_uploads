@@ -114,9 +114,8 @@ def clean(make_output, clean_data, orders_imported, verbose, ordernum, orderid, 
 
                                     for crow in clean_reader:
                                         if filetype == 3:
-                                            helper.order_cleaner(crow, prices[crow[ordernum]])
+                                            helper.order_cleaner(crow, prices, ordernum)
                                             helper.map__c(crow, customermapping, ACCOUNTC, logs)
-                                            cleanwriter.writerow(v for k, v in crow.items())
                                         if orders_imported and filetype != 3:
                                             if filetype == 1: # order product
                                                 helper.order_product_cleaner(crow)

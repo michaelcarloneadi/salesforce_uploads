@@ -181,7 +181,7 @@ def date_concat(dateString):
     return '%sT00:00:00.000Z' % dateString
 
 
-def order_cleaner(order, prices):
+def order_cleaner(order, prices, ordernum):
     '''
         param order <OrderedDict> dictionary that contains dirty order information to import
     '''
@@ -189,23 +189,29 @@ def order_cleaner(order, prices):
     order['Legacy_OMS__c'] = 'PFSweb'
     order['AccountId__c'] = order['Email__c'].lower()
 
-    order['Merchandize_Gross_Price__c'] = prices['Base_Price__c']
-    order['Total_Tax__c'] = prices['Tax__c']
-    order['Adj_Merchandize_GrossPrice__c'] = prices['Net_Price__c']
-    order['Total_Gross_Price__c'] = prices['Net_Price__c']
-
     try:
+        priceinfo = prices[order[ordernum]]
+        order['Merchandize_Gross_Price__c'] = priceinfo['Base_Price__c']
+        order['Total_Tax__c'] = priceinfo['Tax__c']
+        order['Adj_Merchandize_GrossPrice__c'] = priceinfo['Net_Price__c']
+        order['Total_Gross_Price__c'] = priceinfo['Net_Price__c']
         order['Order_Total_Discount__c'] = str(
-            (float(prices['Base_Price__c']) - float(prices['Net_Price__c'])) + float(order['Order_Discount__c']) if
-            order['Order_discount__c'] else 0.00)
-        customer_ship_name = order['Ship_to_Last_Name__c'].split(' ')
-        customer_bill_name = order['Bill_To_Last_Name__c'].split(' ')
-        order['Ship_to_First_Name__c'] = customer_ship_name[0]
-        order['Ship_to_Last_Name__c'] = ' '.join(customer_ship_name)[1:]
-        order['Bill_To_First_Name__c'] = customer_bill_name[0]
-        order['Bill_To_Last_Name__c'] = ' '.join(customer_bill_name[1:])
-    except Exception as e:
-        raise(e)
+            (float(order['Order_Discount__c']) if order['Order_discount__c'] else 0.00) + (float(priceinfo['Product_Disc_Gross_Price__c']))
+                )
+        try:
+            customer_ship_name = order['Ship_to_Last_Name__c'].split(' ')
+            customer_bill_name = order['Bill_To_Last_Name__c'].split(' ')
+            order['Ship_to_First_Name__c'] = customer_ship_name[0]
+            order['Ship_to_Last_Name__c'] = ' '.join(customer_ship_name[1:])
+            order['Bill_To_First_Name__c'] = customer_bill_name[0]
+            order['Bill_To_Last_Name__c'] = ' '.join(customer_bill_name[1:])
+        except Exception as e:
+            raise(e)
+    except Exception as err:
+        if order['PFS Order Type'] == 'SR':
+            pass
+        else:
+            raise(err)
 
 
 def payment_cleaner(payment):
