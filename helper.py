@@ -173,6 +173,49 @@ def get_paths(directory_path, clean_directory):
     return os.path.join(d, 'tsv'), os.path.join(d, 'csv'), os.path.join(d, 'clean')
 
 
+def get_brand(order_external_id):
+    ordernumbrand = order_external_id[:3]
+    if ordernumbrand == 'ASC':
+        return 'asics'
+    elif ordernumbrand == 'ONT':
+        return 'onitsukatiger'
+    elif ordernumbrand == 'OUT':
+        return 'outlet'
+    else:
+        return ''
+
+def get_carrier():
+    carriers = dict()
+    DPD = 'a041U00000BLNikQAH'
+    FedEx = 'a041U00000BLNifQAH'
+    UPS = 'a041U00000BLNipQAH'
+    USPS = 'a041U00000OnqHcQAJ'
+
+    carriers = {
+        'USPS': USPS
+        ,'usps': USPS
+        ,'Usps': USPS
+        ,'DPD': DPD
+        ,'Dpd': DPD
+        ,'dpd': DPD
+        ,'UPS': UPS
+        ,'Ups': UPS
+        ,'ups': UPS
+        ,'FedEx': FedEx
+        ,'FEDEX': FedEx
+        ,'Fedex': FedEx
+        ,'fedex': FedEx
+    }
+    return carriers
+
+def map_carriers(tla_carrier):
+    c = get_carrier()
+    if not tla_carrier or tla_carrier == '':
+        return ''
+    else:
+        return c[tla_carrier]
+
+
 def date_concat(dateString):
     '''
         param dateString <String> date from PFS file
@@ -188,6 +231,9 @@ def order_cleaner(order, prices, ordernum):
     order['Order_Date__c'] = date_concat(order['Order_Date__c'])
     order['Legacy_OMS__c'] = 'PFSweb'
     order['AccountId__c'] = order['Email__c'].lower()
+
+
+    order['Brand__c'] = get_brand(order[ordernum])
 
     try:
         priceinfo = prices[order[ordernum]]
@@ -256,6 +302,7 @@ def shipment_cleaner(shipment):
                      ,'Order_External_ID__c': shipment['Order__c']
      }
     )
+    shipment['Shipment_Provider_Carrier__c'] = map_carriers(shipment['TLA_Shipment_Provider_Carrier__c'])
 
 
 def map__c(row, mapping, field, log=None):
