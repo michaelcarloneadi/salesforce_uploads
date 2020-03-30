@@ -13,6 +13,7 @@ This script takes the TSV from PFS and then outputs a cleaner version for upload
 ## clean_csv.py
 Import this module when you want to run it by itself and pass the following parameters:
 * orders_imported : `--orders` : Boolean : True if you are trying to make CSVs of the other records, False if you cannot make the Order record link to other OMS records yet
+* pricing run : `--pricing` : Boolean : Defaults to True unless passed.  Only pass if you have run pricing and removed Order Product files, else the script will fail.
 
 When you run this via command line and not through a script, pass in the corresponding arguments above to set the parameter to `True`
 ## helper
@@ -45,6 +46,8 @@ _Example_: `python3 clean_csv.py --orders -onum Order_External_Id__c`
 * `-pid` Product ID : DEFAULT ID
 * `-op` Line item product identifier : DEFAULT PRODUCT_SKU__C
 * `-opid` Line item identifier : DEFAULT ID
+* `shipor` Order that the shipment corresponds to : DEFAULT ORDER_EXTERNAL_ID__C
+* `shipid` Shipment ID : DEFAULT ID
 ## Logging
 There are logs under `./logs/` that you can use for troubleshooting.  When there are parsing or other errors, the row that errored out will be logged, as will the ID, if available, that was being parsed.
 
