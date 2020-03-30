@@ -17,7 +17,7 @@ def make_directories():
                     , 'January 2019'
                ]
     sub_directories = ['clean', 'csv', 'tsv']
-    imports = ['imported_customers', 'imported_orders', 'imported_products', 'imported_orderproducts']
+    imports = ['imported_customers', 'imported_orders', 'imported_products', 'imported_orderproducts', 'imported_shipments']
     dir_path = os.path.join(os.path.dirname(os.path.realpath(__file__)))
     current_directories = [d for d in os.listdir(dir_path) if os.path.isdir(os.path.join(dir_path, d))]
 
