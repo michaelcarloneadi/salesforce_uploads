@@ -13,8 +13,6 @@ class OrderMap:
         '''
             return <Dictionary> mapping between SFSC ID and Order Number
         '''
-        import csv
-
         order_map = dict()
         for file in self.files:
             if file[-4:] == '.csv':
@@ -36,8 +34,6 @@ class LineItemMap:
         '''
             return <Dictionary> mapping between SFSC ID and Order Number
         '''
-        import csv
-
         lineitem = dict()
         for file in self.files:
             if file[-4:] == '.csv':
@@ -59,8 +55,6 @@ class CustomerMap:
         '''
             return <Dictionary> mapping between SFSC ID and Customer Email
         '''
-        import csv
-
         customer_map = dict()
         for file in self.files:
             with open(os.path.join(self.wd, file), encoding='ISO-8859-1') as customerfile:
@@ -81,8 +75,6 @@ class ProductMap:
         '''
             return <Dictionary> mapping between SFSC ID and Customer Email
         '''
-        import csv
-
         product_map = dict()
         for file in self.files:
             with open(os.path.join(self.wd, file), encoding='ISO-8859-1') as productfile:
@@ -91,6 +83,26 @@ class ProductMap:
                     if row[self.productField] not in product_map.keys():
                         product_map[row[self.productField].lower()] = row[self.idField]
         return product_map
+
+
+class ShipmentMap:
+    def __init__(self, working_directory, shipmentorder, shipmentid):
+        self.shipmentorderField = 'ORDER_EXTERNAL_ID__C' if not shipmentorder else shipmentorder
+        self.idField = 'ID' if not shipmentid else shipmentid
+        self.wd = working_directory
+        _, _, self.files = next(os.walk(self.wd), (None, None, []))
+    def get_shipment_map(self):
+        '''
+            return <Dictionary> mapping SFSC ID and Order
+        '''
+        shipment_map = dict()
+        for file in self.files:
+            with open(os.path.join(self.wd, file), encoding='ISO-8859-1') as shipmentfile:
+                dictrows = csv.DictReader(shipmentfile, delimiter=',')
+                for row in dictrows:
+                    if row[self.shipmentorderField] not in shipment_map.keys():
+                        shipment_map[row[self.shipmentorderField]] = row[self.idField]
+        return shipment_map
 
 
 class Logger:
@@ -287,6 +299,7 @@ def order_product_cleaner(lineitem):
 
 def shipment_product_cleaner(shipitem):
     shipitem['OrderProduct__c'] = shipitem['Product_SKU__c']
+    shipitem['Shipment__c'] = shipitem['Order__c']
     shipitem.update(
         {'Product_External_ID__c': shipitem['Product_SKU__c']
          ,'Order_External_Id__c': shipitem['Order__c']
@@ -305,7 +318,7 @@ def shipment_cleaner(shipment):
     shipment['Shipment_Provider_Carrier__c'] = map_carriers(shipment['TLA_Shipment_Provider_Carrier__c'])
 
 
-def map__c(row, mapping, field, log=None):
+def map__c(row, mapping, field):
     '''
         param row <OrderedDict> dictionary that contains the data with Order__c field
         param mapping <Dict> dictionary that has a mapping between two fields
