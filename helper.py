@@ -15,7 +15,7 @@ class OrderMap:
         '''
         order_map = dict()
         for file in self.files:
-            if file[-4:] == '.csv':
+            if file[-4:] == '.csv' and 'success' in file:
                 with open(os.path.join(self.wd, file), encoding='ISO-8859-1') as orderfile:
                     dictrows = csv.DictReader(orderfile, delimiter=',')
                     for row in dictrows:
@@ -36,7 +36,7 @@ class LineItemMap:
         '''
         lineitem = dict()
         for file in self.files:
-            if file[-4:] == '.csv':
+            if file[-4:] == '.csv' and 'success' in file:
                 with open(os.path.join(self.wd, file), encoding='ISO-8859-1') as orderfile:
                     dictrows = csv.DictReader(orderfile, delimiter=',')
                     for row in dictrows:
@@ -57,11 +57,12 @@ class CustomerMap:
         '''
         customer_map = dict()
         for file in self.files:
-            with open(os.path.join(self.wd, file), encoding='ISO-8859-1') as customerfile:
-                dictrows = csv.DictReader(customerfile, delimiter=',')
-                for row in dictrows:
-                    if row[self.emailField] not in customer_map.keys():
-                        customer_map[row[self.emailField].lower()] = row[self.idField]
+            if file[-4:] == '.csv' and 'success' in file:
+                with open(os.path.join(self.wd, file), encoding='ISO-8859-1') as customerfile:
+                    dictrows = csv.DictReader(customerfile, delimiter=',')
+                    for row in dictrows:
+                        if row[self.emailField] not in customer_map.keys():
+                            customer_map[row[self.emailField].lower()] = row[self.idField]
         return customer_map
 
 
@@ -77,11 +78,12 @@ class ProductMap:
         '''
         product_map = dict()
         for file in self.files:
-            with open(os.path.join(self.wd, file), encoding='ISO-8859-1') as productfile:
-                dictrows = csv.DictReader(productfile, delimiter=',')
-                for row in dictrows:
-                    if row[self.productField] not in product_map.keys():
-                        product_map[row[self.productField].lower()] = row[self.idField]
+            if file[-4:] == '.csv' and 'success' in file:
+                with open(os.path.join(self.wd, file), encoding='ISO-8859-1') as productfile:
+                    dictrows = csv.DictReader(productfile, delimiter=',')
+                    for row in dictrows:
+                        if row[self.productField] not in product_map.keys():
+                            product_map[row[self.productField].lower()] = row[self.idField]
         return product_map
 
 
@@ -97,11 +99,12 @@ class ShipmentMap:
         '''
         shipment_map = dict()
         for file in self.files:
-            with open(os.path.join(self.wd, file), encoding='ISO-8859-1') as shipmentfile:
-                dictrows = csv.DictReader(shipmentfile, delimiter=',')
-                for row in dictrows:
-                    if row[self.shipmentorderField] not in shipment_map.keys():
-                        shipment_map[row[self.shipmentorderField]] = row[self.idField]
+            if file[-4:] == '.csv' and 'success' in file:
+                with open(os.path.join(self.wd, file), encoding='ISO-8859-1') as shipmentfile:
+                    dictrows = csv.DictReader(shipmentfile, delimiter=',')
+                    for row in dictrows:
+                        if row[self.shipmentorderField] not in shipment_map.keys():
+                            shipment_map[row[self.shipmentorderField]] = row[self.idField]
         return shipment_map
 
 
