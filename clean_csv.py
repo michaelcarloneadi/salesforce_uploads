@@ -121,6 +121,7 @@ def clean(make_output, clean_data, orders_imported, verbose, run_pricing,
                                     elif filetype == 5:
                                         header.append('TLA_Shipment_Provider_Carrier__c')
                                         header.append('Order_External_ID__c')
+                                        header.append('Order_Site_Id__c')
 
                                     cleanwriter.writerow(header)
 
