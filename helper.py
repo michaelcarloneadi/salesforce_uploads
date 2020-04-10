@@ -316,6 +316,7 @@ def shipment_cleaner(shipment):
     shipment['Actual_Shipment_Date__c'] = date_concat(shipment['Actual_Shipment_Date__c'])
     shipment.update({'TLA_Shipment_Provider_Carrier__c': shipment['Shipment_Provider_Carrier__c'][:3]
                      ,'Order_External_ID__c': shipment['Order__c']
+                     ,'Order_Site_Id__c': 'asics-eu'
      }
     )
     shipment['Shipment_Provider_Carrier__c'] = map_carriers(shipment['TLA_Shipment_Provider_Carrier__c'])
